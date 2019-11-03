@@ -14,7 +14,7 @@ def hello_world():
 def get_sample_poemlist():
     data = request.get_json()
     page = data['page']
-    conn = sqlite3.connect('poem.db')
+    conn = sqlite3.connect('database/poem.db')
     c = conn.cursor()
 
     columns = ['id', 'title', 'author', 'dynasty', 'abstract', 'comment_count', 'type']
