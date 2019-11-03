@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 import sqlite3
 import re
+import platform
 
 app = Flask(__name__)
 
@@ -48,8 +49,11 @@ def get_poem_text():
         result.append({
             columns[i]: r[i] for i in range(len(columns))
         })
-    return jsonify(result[0])   # 注意返回原文并不需要列表
+    return jsonify(result[0])  # 注意返回原文并不需要列表
 
 
 if __name__ == '__main__':
-    app.run()
+    if platform.system() == 'Drawin':  # Mac上说明是测试环境
+        app.run()
+    else:  # 否则都认为是正式环境
+        app.run(host='0.0.0.0', ssl_context=('/ssl_file/www.hyunee.top.pem', '/ssl_file/www.hyunee.top.key'))
