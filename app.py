@@ -81,4 +81,4 @@ if __name__ == '__main__':
     if platform.system() == 'Drawin':  # Mac上说明是测试环境
         app.run()
     else:  # 否则都认为是正式环境
-        app.run(host='0.0.0.0', ssl_context=('/ssl_file/www.hyunee.top.pem', '/ssl_file/www.hyunee.top.key'))
+        app.run(host='0.0.0.0', ssl_context=('/ssl_file/3894881_www.hyunee.top.pem', '/ssl_file/3894881_www.hyunee.top.key'))
