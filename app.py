@@ -52,6 +52,31 @@ def get_poem_text():
     return jsonify(result[0])  # 注意返回原文并不需要列表
 
 
+@app.route('/poem/list/scan', methods=['POST'])
+def get_scan_poemlist():
+    data = request.get_json()
+    page, dynasty, author = data['page'], data['dynasty'], data['author']
+    conn = sqlite3.connect('database/poem.db')
+    c = conn.cursor()
+    print(data)
+
+    columns = ['id', 'title', 'author', 'dynasty', 'abstract', 'comment_count', 'type']
+    sql = '''select _id, mingcheng, zuozhe, chaodai, zhaiyao, shipin, 'scan' from poem ''' + \
+          (''' where chaodai={} '''.format(dynasty) if dynasty else '') + \
+          (''' where zuozhe={} '''.format(author) if author else '') + \
+          ''' order by chaodai desc, shipin desc limit 20 offset :offset'''
+    print(sql)
+    assert (len(columns) == len(re.search(r'(?<=select).+(?=from)', sql).group(0).split(',')))
+
+    cursor = c.execute(sql, {'offset': page * 20})
+    result = []
+    for r in cursor:
+        result.append({
+            columns[i]: r[i] for i in range(len(columns))
+        })
+    return jsonify(result)
+
+
 if __name__ == '__main__':
     if platform.system() == 'Drawin':  # Mac上说明是测试环境
         app.run()
