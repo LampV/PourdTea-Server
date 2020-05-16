@@ -1,8 +1,13 @@
-from flask import Flask, jsonify, request
+#! /usr/local/bin/python3
+# encoding=utf-8
+
+from flask import Flask, jsonify, request, current_app, g, Response
 import sqlite3
 import re
 import platform
-
+from utils import *
+import account
+import poem
 app = Flask(__name__)
 
 
@@ -11,25 +16,86 @@ def hello_world():
     return 'Hello World!'
 
 
-@app.route('/poem/list/sample', methods=['POST'])
-def get_sample_poemlist():
+@app.before_request
+def get_conn():
+    conn = sqlite3.connect('database/poem.db')
+    g.conn = conn
+    g.cursor = conn.cursor()
+
+
+# TODO 增加自动注册的逻辑
+@app.route('/account/login', methods=['POST', 'GET'])
+def wx_login():
+    """
+    通过qq服务器的jscode获取openid，并尝试获取服务器用户信息
+    只有注册用户在服务器有信息，因此若有信息说明已经注册，会一起返回
+    若没有信息则说明没有注册，通过account_info为空可以判断
+    """
+    # 获取 openid
+    data = request.get_json()
+    jscode = data['code']
+
+    openid, session_key = code2session(jscode)
+
+    # 尝试获取account_info
+    account_info = account.get_account_info_by_openid(openid, g.cursor)
+
+    return jsonify({'openid': openid, 'account_info': account_info})
+
+
+@app.route('/account/get_info', methods=['POST'])
+def get_info():
+    data = request.get_json()
+    openid = data['openid']
+
+    # 获取account_info对象
+    account_info = account.get_account_info_by_openid(openid, g.cursor)
+
+    return jsonify({'account_info': account_info})
+
+
+
+@app.route('/account/like', methods=['POST'])
+def change_like_status():
+    data = request.get_json()
+    action = data['action']
+    uid, pid = data['uid'], data['pid']
+
+    # 改变状态
+    account.change_poem_status(
+        'like', action, uid, pid, g.conn, g.cursor)
+
+    return 'success'
+
+
+@app.route('/poem/infer/list', methods=['POST'])
+def get_infer_poemlist():
     data = request.get_json()
     page = data['page']
-    conn = sqlite3.connect('database/poem.db')
-    c = conn.cursor()
 
-    columns = ['id', 'title', 'author', 'dynasty', 'abstract', 'comment_count', 'type']
-    sql = '''select _id, mingcheng, zuozhe, chaodai, zhaiyao, shipin, 'sample' from poem 
-    where chaodai='唐代' order by shipin desc limit 20 offset :offset'''
-    assert (len(columns) == len(re.search(r'(?<=select).+(?=from)', sql).group(0).split(',')))
+    poems = poem.get_infer_poems(page, g.cursor)
 
-    cursor = c.execute(sql, {'offset': page * 20})
-    result = []
-    for r in cursor:
-        result.append({
-            columns[i]: r[i] for i in range(len(columns))
-        })
-    return jsonify(result)
+    return jsonify(poems)
+
+
+@app.route('/poem/scan/list', methods=['POST'])
+def get_scan_poemlist():
+    data = request.get_json()
+    page, dynasty, author = data['page'], data['dynasty'], data['author']
+
+    poems = poem.get_poem_list(page, dynasty, author, g.cursor)
+
+    return jsonify(poems)
+
+
+@app.route('/poem/like/list', methods=['POST'])
+def get_like_poemlist():
+    data = request.get_json()
+    uid = data['uid']
+
+    poems = poem.get_like_poems(uid, g.cursor)
+
+    return jsonify(poems)
 
 
 @app.route('/poem/text', methods=['POST'])
@@ -41,7 +107,8 @@ def get_poem_text():
     columns = ['title', 'author_name', 'dynasty', 'text', 'author_abstract']
     sql = '''select p.mingcheng, p.zuozhe, p.chaodai, p.yuanwen, a.jieshao from poem p inner join author a
     on p.zuozhe = a.xingming where p._id = :pid'''
-    assert (len(columns) == len(re.search(r'(?<=select).+(?=from)', sql).group(0).split(',')))
+    assert (len(columns) == len(
+        re.search(r'(?<=select).+(?=from)', sql).group(0).split(',')))
 
     cursor = c.execute(sql, {'pid': poem_id})
     result = []
@@ -52,33 +119,9 @@ def get_poem_text():
     return jsonify(result[0])  # 注意返回原文并不需要列表
 
 
-@app.route('/poem/list/scan', methods=['POST'])
-def get_scan_poemlist():
-    data = request.get_json()
-    page, dynasty, author = data['page'], data['dynasty'], data['author']
-    conn = sqlite3.connect('database/poem.db')
-    c = conn.cursor()
-    print(data)
-
-    columns = ['id', 'title', 'author', 'dynasty', 'abstract', 'comment_count', 'type']
-    sql = '''select _id, mingcheng, zuozhe, chaodai, zhaiyao, shipin, 'scan' from poem ''' + \
-          (''' where chaodai={} '''.format(dynasty) if dynasty else '') + \
-          (''' where zuozhe={} '''.format(author) if author else '') + \
-          ''' order by chaodai desc, shipin desc limit 20 offset :offset'''
-    print(sql)
-    assert (len(columns) == len(re.search(r'(?<=select).+(?=from)', sql).group(0).split(',')))
-
-    cursor = c.execute(sql, {'offset': page * 20})
-    result = []
-    for r in cursor:
-        result.append({
-            columns[i]: r[i] for i in range(len(columns))
-        })
-    return jsonify(result)
-
-
 if __name__ == '__main__':
     if platform.system() == 'Drawin':  # Mac上说明是测试环境
         app.run()
     else:  # 否则都认为是正式环境
-        app.run(host='0.0.0.0', ssl_context=('/ssl_file/3894881_www.hyunee.top.pem', '/ssl_file/3894881_www.hyunee.top.key'))
+        app.run(host='0.0.0.0', ssl_context=(
+            '/ssl_file/3894881_www.hyunee.top.pem', '/ssl_file/3894881_www.hyunee.top.key'))
