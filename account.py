@@ -95,16 +95,16 @@ def change_poem_status(status, action, uid, pid, conn, cursor):
     # 如果action是True，则执行增加操作
     if action:
         if status == 'like':
-            insert_sql = '''INSERT INTO account_likes (uid, pid) VALUES (?, ?) ON CONFLICT DO NOTHING '''
+            insert_sql = '''INSERT OR IGNORE INTO account_likes (uid, pid) VALUES (?, ?) '''
         else:
-            insert_sql = '''INSERT INTO account_favors (uid, pid) VALUES (?, ?)  ON CONFLICT DO NOTHING '''
+            insert_sql = '''INSERT OR IGNORE INTO account_favors (uid, pid) VALUES (?, ?)'''
         cursor.execute(insert_sql, (uid, pid))
     # 否则执行删除操作
     else:
         if status == 'like':
-            delete_sql = '''DELETE FROM account_likes WHERE (uid, pid)=(?, ?)'''
+            delete_sql = '''DELETE FROM account_likes WHERE UID=? AND PID=?'''
         else:
-            delete_sql = '''DELETE FROM account_favors WHERE (uid, pid)=(?, ?)'''
+            delete_sql = '''DELETE FROM account_favors WHERE UID=? AND PID=?'''
         cursor.execute(delete_sql, (uid, pid))
 
     conn.commit()

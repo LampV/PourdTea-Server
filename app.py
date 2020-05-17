@@ -8,12 +8,21 @@ import platform
 from utils import *
 import account
 import poem
+
 app = Flask(__name__)
 
 
-@app.route('/')
-def hello_world():
-    return 'Hello World!'
+def get_authors():
+    with app.app_context():
+        authors = current_app.config.get('authors', None)
+    if not authors:
+        with app.app_context():
+            print('fetch authors')
+            conn = sqlite3.connect('database/poem.db')
+            cursor = conn.cursor()
+            cursor.execute('select xingming from author')
+            authors = current_app.config['authors'] = [d[0] for d in cursor.fetchall()]
+    return authors
 
 
 @app.before_request
@@ -54,7 +63,6 @@ def get_info():
     return jsonify({'account_info': account_info})
 
 
-
 @app.route('/account/like', methods=['POST'])
 def change_like_status():
     data = request.get_json()
@@ -71,20 +79,25 @@ def change_like_status():
 @app.route('/poem/infer/list', methods=['POST'])
 def get_infer_poemlist():
     data = request.get_json()
-    page = data['page']
+    page, uid = data['page'], data['uid']
 
-    poems = poem.get_infer_poems(page, g.cursor)
+    poems = poem.get_infer_poems(uid, page, g.cursor)
 
     return jsonify(poems)
 
 
-@app.route('/poem/scan/list', methods=['POST'])
-def get_scan_poemlist():
+@app.route('/poem/search/list', methods=['POST'])
+def get_search_reault():
     data = request.get_json()
-    page, dynasty, author = data['page'], data['dynasty'], data['author']
+    page, uid = data['page'], data['uid']
+    search_content = data['searchContent']
 
-    poems = poem.get_poem_list(page, dynasty, author, g.cursor)
+    authors = get_authors()
 
+    if search_content:
+        poems = poem.get_search_list(uid, page, search_content, g.cursor, authors)
+    else:
+        poems = poem.get_poem_list(uid, page, g.cursor)
     return jsonify(poems)
 
 
