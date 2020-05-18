@@ -49,6 +49,9 @@ def get_poem_list(uid, page, cursor):
     poems = [{key: value for key, value in zip(
         poem_require_fields, result)} for result in results]
 
+    for poem in poems:
+        poem['searchContent'] = ''
+
     return poems
 
 
@@ -73,6 +76,9 @@ def get_infer_poems(uid, page, cursor):
     poems = [{key: value for key, value in zip(
         poem_require_fields, result)} for result in results]
 
+    for poem in poems:
+        poem['searchContent'] = 'infer'
+
     return poems
 
 
@@ -91,6 +97,9 @@ def get_like_poems(uid, cursor):
 
     poems = [{key: value for key, value in zip(
         poem_require_fields, result)} for result in results]
+
+    for poem in poems:
+        poem['searchContent'] = 'like'
 
     return poems
 
@@ -131,6 +140,9 @@ def get_poems_by_classifier(uid, page, classifier, content, cursor):
     poems = [{key: value for key, value in zip(
         poem_require_fields, result)} for result in results]
 
+    for poem in poems:
+        poem['searchContent'] = content
+
     return poems
 
 
@@ -164,6 +176,8 @@ def get_poems_by_intelligent(uid, page, content, cursor):
 
     poems = [{key: value for key, value in zip(
         poem_require_fields, result)} for result in results]
+    for poem in poems:
+        poem['searchContent'] = content
 
     poems.sort(key=lambda p: p['comment_count'], reverse=True)
 
