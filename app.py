@@ -21,7 +21,8 @@ def get_authors():
             conn = sqlite3.connect('database/poem.db')
             cursor = conn.cursor()
             cursor.execute('select xingming from author')
-            authors = current_app.config['authors'] = [d[0] for d in cursor.fetchall()]
+            authors = current_app.config['authors'] = [
+                d[0] for d in cursor.fetchall()]
     return authors
 
 
@@ -32,7 +33,6 @@ def get_conn():
     g.cursor = conn.cursor()
 
 
-# TODO 增加自动注册的逻辑
 @app.route('/account/login', methods=['POST', 'GET'])
 def wx_login():
     """
@@ -59,6 +59,20 @@ def get_info():
 
     # 获取account_info对象
     account_info = account.get_account_info_by_openid(openid, g.cursor)
+
+    return jsonify({'account_info': account_info})
+
+
+@app.route('/account/update', methods=['POST'])
+def update_info():
+    data = request.get_json()
+    uid = data['uid']
+    user_info = data['userInfo']
+
+    # 更新数据
+    account.update_account(uid, user_info, g.cursor)
+    # 获取account_info对象
+    account_info = account.get_account_info_by_uid(uid, g.cursor)
 
     return jsonify({'account_info': account_info})
 
@@ -95,7 +109,8 @@ def get_search_reault():
     authors = get_authors()
 
     if search_content:
-        poems = poem.get_search_list(uid, page, search_content, g.cursor, authors)
+        poems = poem.get_search_list(
+            uid, page, search_content, g.cursor, authors)
     else:
         poems = poem.get_poem_list(uid, page, g.cursor)
     return jsonify(poems)

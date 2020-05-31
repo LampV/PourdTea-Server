@@ -5,6 +5,7 @@ import requests
 import json
 from utils import *
 
+
 def get_account_info(identify, id_type, cursor):
     """
     通过openid获取用户信息
@@ -14,7 +15,7 @@ def get_account_info(identify, id_type, cursor):
     :return: dict类型的account_info
     """
     require_fields = [
-        'uid'
+        'uid', 'nickname', 'superuser'
     ]
     rename_dict = {
         'uid': 'id'
@@ -31,7 +32,8 @@ def get_account_info(identify, id_type, cursor):
     result = cursor.fetchone()
 
     # 叫做account_info 是为了和qq的user_info 做区分
-    account_info = {key: value for key, value in zip(require_fields, result)} if result else None
+    account_info = {key: value for key, value in zip(
+        require_fields, result)} if result else None
 
     return account_info
 
@@ -45,7 +47,7 @@ def get_account_info_by_openid(openid, cursor):
     """
 
     account_info = get_account_info(openid, 'openid', cursor)
-    if not account_info: # 若没有则注册
+    if not account_info:  # 若没有则注册
         add_account(openid, cursor.connection, cursor)
         account_info = get_account_info(openid, 'openid', cursor)
     return account_info
@@ -76,6 +78,24 @@ def add_account(openid, conn, cursor):
         '''
     cursor.execute(insert_sql, (openid, ))
     conn.commit()
+    return 'success'
+
+
+def update_account(uid, user_info, cursor):
+    """
+    添加一条account信息
+    :param user_info:   QQ用户信息
+    :param openid:      用户在小程序的唯一标识
+    :param school:      用户学校
+    :param conn:        数据库连接
+    :param cursor:      连接句柄
+    :return:
+    """
+    update_sql = '''
+        UPDATE account SET NICKNAME=(?) WHERE id=(?);
+        '''
+    cursor.execute(update_sql, (user_info['nickname'], uid))
+    cursor.connection.commit()
     return 'success'
 
 
