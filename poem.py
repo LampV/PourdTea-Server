@@ -3,7 +3,7 @@
 """
 @author: Jiawei Wu
 @create time: 2020-05-15 22:34
-@edit time: 2020-05-31 21:10
+@edit time: 2020-05-31 21:18
 @FilePath: /vpoem/poem.py
 @desc: 
 """
@@ -47,12 +47,13 @@ def get_poem_text(poem_id, uid, cursor):
     text_select_sql = '''
         SELECT {}
           FROM poem p
-          INNER JOIN author a
-          LEFT JOIN account_likes l on p._id = l.pid AND l.uid=?
-          LEFT JOIN account_favors f on p._id = f.pid AND f.UID=?
+          INNER JOIN author a ON p.zuozhe = a.xingming
+          LEFT JOIN account_likes l on p._id = l.pid AND l.UID=:uid
+          LEFT JOIN account_favors f on p._id = f.pid AND f.UID=:uid
+        WHERE p._id = :pid
         '''.format(text_require_fields_str)
 
-    cursor.execute(text_select_sql, (poem_id, uid))
+    cursor.execute(text_select_sql, {'uid': uid, 'pid': poem_id})
 
     result = cursor.fetchone()
 
