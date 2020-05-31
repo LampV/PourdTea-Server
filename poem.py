@@ -3,7 +3,7 @@
 """
 @author: Jiawei Wu
 @create time: 2020-05-15 22:34
-@edit time: 2020-05-31 21:02
+@edit time: 2020-05-31 21:10
 @FilePath: /vpoem/poem.py
 @desc: 
 """
@@ -103,7 +103,7 @@ def get_infer_poems(uid, page, cursor):
           FROM poem
           LEFT JOIN account_likes l on poem._id = l.pid AND l.uid=?
           LEFT JOIN account_favors f on poem._id = f.pid AND f.UID=?
-          ORDER BY poem._id DESC LIMIT ? OFFSET (?) 
+          ORDER BY poem._id LIMIT ? OFFSET (?) 
         '''.format(poem_require_fields_str)
     cursor.execute(poem_select_sql, (uid, uid, PAGE_SIZE, page * PAGE_SIZE))
     results = cursor.fetchall()
