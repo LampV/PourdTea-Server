@@ -128,23 +128,13 @@ def get_like_poemlist():
 
 @app.route('/poem/text', methods=['POST'])
 def get_poem_text():
-    poem_id = request.get_json()['poem_id']
-    conn = sqlite3.connect('database/poem.db')
-    c = conn.cursor()
+    data = request.get_json()
+    poem_id = data['poem_id']
+    uid = data['uid']
+    
+    poem_detail = poem.get_poem_text(poem_id, uid, g.cursor)
 
-    columns = ['title', 'author_name', 'dynasty', 'text', 'author_abstract']
-    sql = '''select p.mingcheng, p.zuozhe, p.chaodai, p.yuanwen, a.jieshao from poem p inner join author a
-    on p.zuozhe = a.xingming where p._id = :pid'''
-    assert (len(columns) == len(
-        re.search(r'(?<=select).+(?=from)', sql).group(0).split(',')))
-
-    cursor = c.execute(sql, {'pid': poem_id})
-    result = []
-    for r in cursor:
-        result.append({
-            columns[i]: r[i] for i in range(len(columns))
-        })
-    return jsonify(result[0])  # 注意返回原文并不需要列表
+    return jsonify(poem_detail)  # 注意返回原文并不需要列表
 
 
 if __name__ == '__main__':

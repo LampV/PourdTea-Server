@@ -3,7 +3,7 @@
 """
 @author: Jiawei Wu
 @create time: 2020-05-15 22:34
-@edit time: 2020-05-15 23:24
+@edit time: 2020-05-31 21:02
 @FilePath: /vpoem/poem.py
 @desc: 
 """
@@ -24,7 +24,42 @@ poem_rename_dict = {
     'comment_count': 'shipin',
     'like_flag': 'l.uid',
 }
+
+text_require_fields = [
+    'pid', 'title', 'author_name', 'dynasty', 'text', 'author_abstract', 'like_flag'
+]
+text_rename_dict = {
+    'pid': 'p._id',
+    'title': 'p.mingcheng',
+    'author_name': 'p.zuozhe',
+    'dynasty': 'p.chaodai',
+    'text': 'p.yuanwen',
+    'author_abstract': 'a.jieshao',
+    'like_flag': 'l.uid',
+}
+
 poem_require_fields_str = get_require_str(poem_require_fields, poem_rename_dict)
+text_require_fields_str = get_require_str(text_require_fields, text_rename_dict)
+
+
+def get_poem_text(poem_id, uid, cursor):
+    """获取古诗原文，以对象数组形式返回"""
+    text_select_sql = '''
+        SELECT {}
+          FROM poem p
+          INNER JOIN author a
+          LEFT JOIN account_likes l on p._id = l.pid AND l.uid=?
+          LEFT JOIN account_favors f on p._id = f.pid AND f.UID=?
+        '''.format(text_require_fields_str)
+
+    cursor.execute(text_select_sql, (poem_id, uid))
+
+    result = cursor.fetchone()
+
+    detail = {key: value for key, value in zip(
+        text_require_fields, result)}
+
+    return detail
 
 
 def get_poem_list(uid, page, cursor):
@@ -105,7 +140,8 @@ def get_like_poems(uid, cursor):
 
 
 def get_search_list(uid, page, content, cursor, authors):
-    dynasies = ['先秦', '战国', '汉', '魏晋', '隋', '唐', '周', '五代', '南唐', '辽', '宋', '元', '明', '清', '近代', '现代', '未知']
+    dynasies = ['先秦', '战国', '汉', '魏晋', '隋', '唐', '周', '五代',
+                '南唐', '辽', '宋', '元', '明', '清', '近代', '现代', '未知']
     themes = ['写景', '咏物', '春天', '夏天', '秋天', '冬天', '写雨', '写雪', '写风', '写花', '梅花', '荷花',
               '菊花', '柳树', '月亮', '山水', '写山', '写水', '长江', '黄河', '儿童', '写鸟', '写马', '田园',
               '边塞', '地名', '节日', '春节', '元宵', '寒食', '清明', '端午', '七夕', '中秋', '重阳', '怀古',
@@ -113,7 +149,8 @@ def get_search_list(uid, page, content, cursor, authors):
               '老师', '母亲', '友情', '战争', '读书', '惜时', '忧民', '婉约', '豪放', '民谣']
     # 如果内容被朝代包含
     if re.sub(r'[朝代]', '', content) in dynasies:
-        poems = get_poems_by_classifier(uid, page, 'chaodai', re.sub(r'[朝代]', '', content), cursor)
+        poems = get_poems_by_classifier(
+            uid, page, 'chaodai', re.sub(r'[朝代]', '', content), cursor)
     elif content in themes:
         poems = get_poems_by_classifier(uid, page, 'fenlei', content, cursor)
     elif content in authors:
